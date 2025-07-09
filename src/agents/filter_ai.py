@@ -154,3 +154,71 @@ class FilterAI:
             recommendations.append("May not be suitable for this role")
         
         return recommendations
+    
+    def filter_candidates(self, candidates: List[Dict[str, Any]], 
+                         job: Dict[str, Any], 
+                         filter_criteria: Dict[str, Any]) -> Dict[str, Any]:
+        """Filter candidates based on criteria and job requirements"""
+        try:
+            # First rank all candidates
+            ranked_candidates = self.rank_candidates(candidates, job)
+            
+            # Apply filter criteria
+            filtered_candidates = []
+            
+            for candidate_analysis in ranked_candidates:
+                if 'error' in candidate_analysis:
+                    continue
+                
+                candidate = candidate_analysis['candidate_data']
+                score = candidate_analysis['overall_score']
+                
+                # Check minimum experience
+                min_experience = filter_criteria.get('min_experience', 0)
+                candidate_years = self._extract_years(candidate.get('experience', ''))
+                if candidate_years < min_experience:
+                    continue
+                
+                # Check required skills
+                required_skills = filter_criteria.get('required_skills', [])
+                if required_skills:
+                    candidate_skills = [skill.lower() for skill in candidate.get('skills', [])]
+                    required_skills_lower = [skill.lower() for skill in required_skills]
+                    if not all(skill in candidate_skills for skill in required_skills_lower):
+                        continue
+                
+                # Check education level
+                education_level = filter_criteria.get('education_level', 'Any')
+                if education_level != 'Any':
+                    candidate_edu = candidate.get('education', '').lower()
+                    if education_level.lower() not in candidate_edu:
+                        continue
+                
+                # Check minimum score threshold
+                score_threshold = filter_criteria.get('score_threshold', 0)
+                if score < score_threshold:
+                    continue
+                
+                # Add candidate to filtered list with analysis data
+                filtered_candidate = candidate.copy()
+                filtered_candidate.update({
+                    'match_score': score,
+                    'ranking': candidate_analysis['ranking'],
+                    'recommendations': candidate_analysis['recommendations']
+                })
+                filtered_candidates.append(filtered_candidate)
+            
+            return {
+                "success": True,
+                "filtered_candidates": filtered_candidates,
+                "total_candidates": len(candidates),
+                "filtered_count": len(filtered_candidates),
+                "filter_criteria": filter_criteria
+            }
+            
+        except Exception as e:
+            return {
+                "success": False,
+                "message": f"Error filtering candidates: {str(e)}",
+                "filtered_candidates": []
+            }

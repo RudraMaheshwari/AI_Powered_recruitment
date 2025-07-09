@@ -137,3 +137,49 @@ class StoreKeeper:
                 
         except Exception as e:
             return {"success": False, "message": f"Error updating status: {str(e)}"}
+    
+    def update_candidate(self, candidate_data: Dict[str, Any]) -> Dict[str, Any]:
+        """Update candidate data"""
+        try:
+            data = load_json(self.config["candidates_file"])
+            candidates = data.get("candidates", [])
+            
+            # Find and update the candidate
+            for i, candidate in enumerate(candidates):
+                if candidate.get("id") == candidate_data.get("id"):
+                    candidates[i] = candidate_data
+                    break
+            
+            data["candidates"] = candidates
+            result = save_json(data, self.config["candidates_file"])
+            
+            if result:
+                return {"success": True, "message": "Candidate updated successfully"}
+            else:
+                return {"success": False, "message": "Failed to update candidate"}
+                
+        except Exception as e:
+            return {"success": False, "message": f"Error updating candidate: {str(e)}"}
+    
+    def update_interview(self, interview_data: Dict[str, Any]) -> Dict[str, Any]:
+        """Update interview data"""
+        try:
+            data = load_json(self.config["interviews_file"])
+            interviews = data.get("interviews", [])
+            
+            # Find and update the interview
+            for i, interview in enumerate(interviews):
+                if interview.get("id") == interview_data.get("id"):
+                    interviews[i] = interview_data
+                    break
+            
+            data["interviews"] = interviews
+            result = save_json(data, self.config["interviews_file"])
+            
+            if result:
+                return {"success": True, "message": "Interview updated successfully"}
+            else:
+                return {"success": False, "message": "Failed to update interview"}
+                
+        except Exception as e:
+            return {"success": False, "message": f"Error updating interview: {str(e)}"}

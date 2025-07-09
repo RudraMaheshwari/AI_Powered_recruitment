@@ -13,12 +13,13 @@ class Candidate:
     name: str
     email: str
     phone: Optional[str] = None
-    skills: List[str] = None
+    skills: Optional[List[str]] = None
     experience: Optional[str] = None
     education: Optional[str] = None
     resume_path: Optional[str] = None
+    job_id: Optional[str] = None
     status: str = "new"
-    created_at: str = None
+    created_at: Optional[str] = None
     
     def __post_init__(self):
         if self.skills is None:
@@ -40,7 +41,7 @@ class Job:
     experience_level: str
     department: str
     status: str = "active"
-    created_at: str = None
+    created_at: Optional[str] = None
     
     def __post_init__(self):
         if self.created_at is None:
@@ -55,10 +56,12 @@ class Interview:
     id: str
     candidate_id: str
     job_id: str
+    interviewer: str
     scheduled_time: str
+    type: str
     status: str = "scheduled"
     notes: Optional[str] = None
-    created_at: str = None
+    created_at: Optional[str] = None
     
     def __post_init__(self):
         if self.created_at is None:

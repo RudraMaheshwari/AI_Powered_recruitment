@@ -207,13 +207,25 @@ def show_resume_collection():
                         try:
                             job_data = next((j for j in jobs if j['title'] == selected_job), None)
                             
-                            result = resume_bot.process_resume(uploaded_file, job_data)
+                            # Save uploaded file
+                            file_path = f"data/resumes/{uploaded_file.name}"
+                            with open(file_path, "wb") as f:
+                                f.write(uploaded_file.getbuffer())
+                            
+                            # Prepare resume data
+                            resume_data = {
+                                'file_path': file_path,
+                                'name': uploaded_file.name,
+                                'job_data': job_data
+                            }
+                            
+                            result = resume_bot.process_resume(resume_data)
                             
                             if result['success']:
                                 st.success("Resume processed successfully!")
                                 
                                 st.subheader("Extracted Information")
-                                candidate_info = result['candidate_info']
+                                candidate_info = result['candidate']
                                 
                                 col1, col2 = st.columns(2)
                                 with col1:
@@ -401,6 +413,7 @@ def show_interview_scheduling():
                         interview = Interview(
                             id=generate_id(),
                             candidate_id=candidate_data['id'],
+                            job_id=candidate_data.get('job_id', ''),
                             interviewer=interviewer,
                             scheduled_time=interview_datetime.isoformat(),
                             type=interview_type,
@@ -408,26 +421,23 @@ def show_interview_scheduling():
                             created_at=get_timestamp()
                         )
                         
-                        result = time_bot.schedule_interview(interview.to_dict())
+                        # Store the interview directly since we already have the Interview object
+                        store_result = store_keeper.store_interview(interview.to_dict())
                         
-                        if result['success']:
-                            store_result = store_keeper.store_interview(interview.to_dict())
-                            if store_result['success']:
-                                st.success("Interview scheduled successfully!")
-                                
-                                notify_bot = st.session_state.agents['notify_bot']
-                                notify_result = notify_bot.send_interview_notification(
-                                    candidate_data, interview.to_dict()
-                                )
-                                
-                                if notify_result['success']:
-                                    st.info("Notification sent to candidate.")
-                                else:
-                                    st.warning("Interview scheduled but notification failed.")
+                        if store_result['success']:
+                            st.success("Interview scheduled successfully!")
+                            
+                            notify_bot = st.session_state.agents['notify_bot']
+                            notify_result = notify_bot.send_interview_notification(
+                                candidate_data, interview.to_dict()
+                            )
+                            
+                            if notify_result['success']:
+                                st.info("Notification sent to candidate.")
                             else:
-                                st.error(f"Error storing interview: {store_result['message']}")
+                                st.warning("Interview scheduled but notification failed.")
                         else:
-                            st.error(f"Error scheduling interview: {result['message']}")
+                            st.error(f"Error storing interview: {store_result['message']}")
         else:
             st.warning("No candidates available for interview scheduling.")
     

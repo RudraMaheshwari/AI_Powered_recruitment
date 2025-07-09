@@ -36,6 +36,54 @@ class NotifyBot:
         except Exception as e:
             return {"error": f"Error sending interview confirmation: {str(e)}"}
     
+    def send_interview_notification(self, candidate: Dict[str, Any], 
+                                  interview: Dict[str, Any]) -> Dict[str, Any]:
+        """Send interview notification to candidate (alias for send_interview_confirmation)"""
+        try:
+            # Use the existing interview confirmation logic
+            result = self.send_interview_confirmation(candidate, interview)
+            
+            # Update the type to match the expected method name
+            if "error" not in result:
+                result["type"] = "interview_notification"
+                result["success"] = True
+            else:
+                result["success"] = False
+                result["message"] = result["error"]
+            
+            return result
+            
+        except Exception as e:
+            return {
+                "success": False,
+                "message": f"Error sending interview notification: {str(e)}"
+            }
+    
+    def send_decision_notification(self, candidate: Dict[str, Any], 
+                                 decision_data: Dict[str, Any]) -> Dict[str, Any]:
+        """Send final decision notification to candidate"""
+        try:
+            message = self._generate_decision_notification_message(candidate, decision_data)
+            
+            notification = {
+                "id": self._generate_notification_id(),
+                "type": "decision_notification",
+                "recipient": candidate.get("email"),
+                "subject": "Application Decision",
+                "message": message,
+                "status": "sent",
+                "sent_at": datetime.now().isoformat(),
+                "success": True
+            }
+            
+            return notification
+            
+        except Exception as e:
+            return {
+                "success": False,
+                "message": f"Error sending decision notification: {str(e)}"
+            }
+    
     def send_interview_reminder(self, candidate: Dict[str, Any], 
                               interview: Dict[str, Any]) -> Dict[str, Any]:
         """Send interview reminder to candidate"""
@@ -169,6 +217,61 @@ If you have any questions, please don't hesitate to contact us.
 Best regards,
 HR Team
 """
+        return message.strip()
+    
+    def _generate_decision_notification_message(self, candidate: Dict[str, Any], 
+                                              decision_data: Dict[str, Any]) -> str:
+        """Generate decision notification message"""
+        decision = decision_data.get('decision', '')
+        salary_offer = decision_data.get('salary_offer')
+        notes = decision_data.get('notes', '')
+        
+        if decision == 'hire':
+            message = f"""
+Dear {candidate.get('name', 'Candidate')},
+
+Congratulations! We are pleased to offer you the position.
+
+{f'Salary Offer: ${salary_offer:,}' if salary_offer else ''}
+
+{notes if notes else ''}
+
+Please review the offer and respond within 5 business days.
+
+Best regards,
+HR Team
+"""
+        elif decision == 'reject':
+            message = f"""
+Dear {candidate.get('name', 'Candidate')},
+
+Thank you for your interest in our company and for taking the time to interview with us.
+
+After careful consideration, we have decided to move forward with other candidates for this position.
+
+{notes if notes else ''}
+
+We wish you the best in your future endeavors.
+
+Best regards,
+HR Team
+"""
+        else:  # hold
+            message = f"""
+Dear {candidate.get('name', 'Candidate')},
+
+Thank you for your interest in our company.
+
+Your application is currently on hold while we complete our review process.
+
+{notes if notes else ''}
+
+We will be in touch with you soon.
+
+Best regards,
+HR Team
+"""
+        
         return message.strip()
     
     def _generate_notification_id(self) -> str:
